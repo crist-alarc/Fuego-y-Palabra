@@ -148,6 +148,22 @@
     font-size:11px;color:#fff;font-family:'Cinzel',serif;font-weight:700;
   }
 
+  /* ---------- Rutas / viajes ---------- */
+  .route-arrow{
+    width:0;height:0;
+    border-left:6px solid transparent;
+    border-right:6px solid transparent;
+    border-bottom:11px solid #000;
+    filter:drop-shadow(0 1px 1.5px rgba(0,0,0,.5));
+  }
+  .line-item{display:flex;align-items:flex-start;gap:9px;padding:7px 4px;cursor:pointer;border-radius:4px;}
+  .line-item:hover{background:rgba(43,33,24,0.05);}
+  .line-item input{accent-color:var(--ink);width:15px;height:15px;cursor:pointer;margin-top:2px;flex:none;}
+  .line-swatch{width:22px;height:0;border-top-width:3px;border-top-style:solid;margin-top:9px;flex:none;}
+  .line-item .line-text{flex:1;}
+  .line-item .line-text .lname{font-size:14.5px;display:block;}
+  .line-item .line-text .lref{font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--ink-soft);display:block;margin-top:1px;}
+
   @media (max-width:760px){
     #app{flex-direction:column;}
     #sidebar{width:100%;min-width:0;height:44%;order:2;border-right:none;border-top:2px solid var(--ink);}
@@ -214,6 +230,11 @@
         <div class="checklist" id="libroList"></div>
       </div>
 
+      <div class="fgroup">
+        <h2>Rutas y viajes</h2>
+        <div id="journeyList"></div>
+      </div>
+
     </div>
     <div id="resultcount"></div>
   </aside>
@@ -236,6 +257,7 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
 <script src="lugares.js"></script>
+<script src="viajes.js"></script>
 <script>
 /* ============ DATOS ============
    n: nombre | lat,lng | t: testamento (AT/NT)
@@ -303,6 +325,63 @@ const markers = PLACES.map(p=>{
   return m;
 });
 const markerLayer = L.layerGroup(markers).addTo(map);
+
+/* ============ RUTAS Y VIAJES ============ */
+function resolvePoint(pt){
+  if(pt.ref){
+    const place = PLACES.find(pl=>pl.n === pt.ref);
+    if(!place){ console.warn('Punto de ruta no encontrado en PLACES:', pt.ref); return null; }
+    return {latlng:[place.lat, place.lng], label:place.n};
+  }
+  return {latlng:[pt.lat, pt.lng], label:pt.label || ''};
+}
+function bearingDeg(a,b){
+  const dx = b[1]-a[1], dy = b[0]-a[0];
+  return Math.atan2(dx,dy) * 180/Math.PI;
+}
+
+const journeyGroups = (typeof JOURNEYS !== 'undefined' ? JOURNEYS : []).map(j=>{
+  const resolved = j.puntos.map(resolvePoint).filter(Boolean);
+  const latlngs = resolved.map(r=>r.latlng);
+  const group = L.layerGroup();
+  if(latlngs.length >= 2){
+    const line = L.polyline(latlngs, {color:j.color, weight:3, opacity:0.9, dashArray:j.dash||null});
+    line.bindPopup(`
+      <div class="pop-eyebrow">Ruta</div>
+      <div class="pop-title">${j.n}</div>
+      <div class="pop-desc">${j.d}</div>
+      <div class="pop-ref"><b>Ref.</b> ${j.ref}</div>
+    `);
+    line.addTo(group);
+    for(let i=0;i<latlngs.length-1;i++){
+      const a = latlngs[i], b = latlngs[i+1];
+      const mid = [(a[0]+b[0])/2, (a[1]+b[1])/2];
+      const angle = bearingDeg(a,b);
+      const arrowIcon = L.divIcon({
+        className:'',
+        html:`<div class="route-arrow" style="border-bottom-color:${j.color};transform:rotate(${angle}deg)"></div>`,
+        iconSize:[14,16], iconAnchor:[7,8]
+      });
+      L.marker(mid,{icon:arrowIcon, interactive:false}).addTo(group);
+    }
+  }
+  return {meta:j, layer:group};
+});
+
+// Checklist de rutas (todas apagadas por defecto para no saturar el mapa)
+const journeyList = document.getElementById('journeyList');
+journeyGroups.forEach(jg=>{
+  const row = document.createElement('div'); row.className='line-item';
+  row.innerHTML = `
+    <div class="line-swatch" style="border-top-color:${jg.meta.color};${jg.meta.dash?'border-top-style:dashed;':''}"></div>
+    <div class="line-text"><span class="lname">${jg.meta.n}</span><span class="lref">${jg.meta.ref}</span></div>
+  `;
+  const cb = document.createElement('input'); cb.type='checkbox'; cb.checked=false;
+  row.prepend(cb);
+  cb.onchange = ()=>{ cb.checked ? jg.layer.addTo(map) : map.removeLayer(jg.layer); };
+  row.querySelector('.line-text').onclick = ()=>{ cb.checked = !cb.checked; cb.onchange(); };
+  journeyList.appendChild(row);
+});
 
 /* ============ FILTROS ============ */
 const state = { search:'', testamentos:new Set(['AT','NT']), tipos:new Set(Object.keys(TYPE_META)), periodos:new Set(), libros:new Set() };
