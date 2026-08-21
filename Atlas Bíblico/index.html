@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Atlas Bíblico — Fuego y Palabra</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --parchment: #E9DFC3;
+    --parchment-dark: #DACD9F;
+    --ink: #2B2118;
+    --ink-soft: #4A3B2A;
+    --terracotta: #A8452B;
+    --teal: #2A5C63;
+    --gold: #B4903B;
+    --purple: #6B4E7C;
+    --olive: #5C6B3D;
+    --slate: #5A5750;
+    --paper-line: rgba(43,33,24,0.14);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;height:100%;font-family:'EB Garamond', serif;color:var(--ink);background:var(--parchment);}
+  #app{display:flex;height:100vh;width:100vw;overflow:hidden;position:relative;}
+
+  /* ---------- Sidebar ---------- */
+  #sidebar{
+    width:340px;min-width:340px;
+    background:
+      linear-gradient(180deg, rgba(255,255,255,0.05), rgba(0,0,0,0.02)),
+      var(--parchment);
+    border-right:2px solid var(--ink);
+    box-shadow: inset -6px 0 12px -10px rgba(0,0,0,.4);
+    display:flex;flex-direction:column;
+    overflow:hidden;
+    position:relative;
+    transition:width .25s ease, min-width .25s ease;
+  }
+  #sidebar::after{
+    content:"";position:absolute;inset:0;pointer-events:none;
+    background-image:
+      repeating-linear-gradient(0deg, transparent 0 38px, var(--paper-line) 38px 39px);
+    opacity:.5;
+  }
+  header.brand{
+    padding:22px 22px 14px;border-bottom:2px solid var(--ink);position:relative;z-index:1;
+  }
+  header.brand .mark{
+    font-family:'Cinzel',serif;font-weight:700;font-size:11px;letter-spacing:.18em;
+    color:var(--terracotta);text-transform:uppercase;
+  }
+  header.brand h1{
+    font-family:'Cinzel',serif;font-weight:700;font-size:26px;line-height:1.15;margin:6px 0 4px;
+    color:var(--ink);
+  }
+  header.brand p{
+    margin:0;font-size:13.5px;color:var(--ink-soft);font-style:italic;
+  }
+
+  #filters{flex:1;overflow-y:auto;padding:16px 22px 90px;position:relative;z-index:1;}
+  #filters::-webkit-scrollbar{width:8px;}
+  #filters::-webkit-scrollbar-thumb{background:var(--ink-soft);border-radius:4px;}
+
+  .fgroup{margin-bottom:22px;}
+  .fgroup h2{
+    font-family:'Cinzel',serif;font-size:12.5px;letter-spacing:.12em;text-transform:uppercase;
+    color:var(--ink);margin:0 0 10px;padding-bottom:6px;border-bottom:1px solid var(--paper-line);
+    display:flex;align-items:center;justify-content:space-between;
+  }
+  .fgroup h2 .clear{
+    font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:0;text-transform:none;
+    color:var(--terracotta);cursor:pointer;font-weight:500;background:none;border:none;padding:0;
+  }
+  .fgroup h2 .clear:hover{text-decoration:underline;}
+
+  #search{
+    width:100%;padding:9px 12px;font-family:'EB Garamond',serif;font-size:15px;
+    border:1px solid var(--ink-soft);border-radius:3px;background:#FBF6E8;color:var(--ink);
+  }
+  #search:focus{outline:2px solid var(--gold);outline-offset:1px;}
+
+  .chip-row{display:flex;gap:8px;}
+  .chip{
+    flex:1;text-align:center;padding:7px 6px;border:1px solid var(--ink-soft);border-radius:20px;
+    font-family:'IBM Plex Mono',monospace;font-size:11.5px;cursor:pointer;user-select:none;
+    background:#FBF6E8;color:var(--ink-soft);transition:.15s;
+  }
+  .chip.active{background:var(--ink);color:var(--parchment);border-color:var(--ink);}
+
+  .type-item{
+    display:flex;align-items:center;gap:9px;padding:6px 4px;cursor:pointer;border-radius:4px;
+  }
+  .type-item:hover{background:rgba(43,33,24,0.05);}
+  .type-item input{accent-color:var(--ink);width:15px;height:15px;cursor:pointer;}
+  .swatch{width:13px;height:13px;border-radius:50%;border:1.5px solid rgba(0,0,0,.35);flex:none;}
+  .type-item label{font-size:14.5px;cursor:pointer;flex:1;}
+  .type-count{font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--ink-soft);}
+
+  .checklist{max-height:190px;overflow-y:auto;border:1px solid var(--paper-line);border-radius:4px;padding:4px 8px;background:rgba(255,255,255,.25);}
+  .checklist::-webkit-scrollbar{width:6px;}
+  .checklist::-webkit-scrollbar-thumb{background:var(--ink-soft);border-radius:3px;}
+  .check-item{display:flex;align-items:center;gap:8px;padding:4px 2px;font-size:13.5px;}
+  .check-item input{accent-color:var(--ink);cursor:pointer;}
+  .check-item label{cursor:pointer;}
+
+  #resultcount{
+    position:absolute;left:0;right:0;bottom:0;padding:12px 22px;
+    background:var(--ink);color:var(--parchment);font-family:'IBM Plex Mono',monospace;
+    font-size:12px;letter-spacing:.03em;border-top:2px solid var(--gold);z-index:2;
+  }
+  #resultcount b{color:var(--gold);}
+
+  /* ---------- Map area ---------- */
+  #mapwrap{flex:1;position:relative;}
+  #map{height:100%;width:100%;background:#DCD3B4;}
+  .leaflet-tile-pane{filter:sepia(45%) saturate(55%) brightness(1.12) contrast(0.92) hue-rotate(-8deg);}
+  .leaflet-container{background:#DCD3B4;}
+
+  .compass{
+    position:absolute;top:16px;right:16px;z-index:500;width:64px;height:64px;
+    filter:drop-shadow(0 2px 3px rgba(0,0,0,.35));pointer-events:none;opacity:.85;
+  }
+
+  .leaflet-popup-content-wrapper{
+    background:#FBF6E8;border-radius:2px;border:1px solid var(--ink);
+    box-shadow:0 6px 18px rgba(0,0,0,.35);
+  }
+  .leaflet-popup-tip{background:#FBF6E8;border:1px solid var(--ink);}
+  .leaflet-popup-content{margin:14px 16px;width:280px !important;}
+  .pop-eyebrow{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--terracotta);margin-bottom:3px;}
+  .pop-title{font-family:'Cinzel',serif;font-weight:700;font-size:18px;color:var(--ink);margin:0 0 6px;}
+  .pop-tags{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px;}
+  .pop-tag{font-family:'IBM Plex Mono',monospace;font-size:10px;padding:2px 7px;border-radius:10px;color:#fff;}
+  .pop-desc{font-size:14.5px;line-height:1.42;color:var(--ink-soft);margin-bottom:8px;}
+  .pop-ref{font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--ink);border-top:1px dashed var(--paper-line);padding-top:7px;}
+  .pop-ref b{color:var(--terracotta);}
+  .pop-gmaps{
+    display:block;margin-top:9px;font-family:'IBM Plex Mono',monospace;font-size:11.5px;
+    color:var(--teal);text-decoration:none;font-weight:500;
+  }
+  .pop-gmaps:hover{text-decoration:underline;}
+
+  .divmarker{
+    width:22px;height:22px;border-radius:50%;border:2px solid #FBF6E8;
+    box-shadow:0 1px 4px rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;
+    font-size:11px;color:#fff;font-family:'Cinzel',serif;font-weight:700;
+  }
+
+  @media (max-width:760px){
+    #app{flex-direction:column;}
+    #sidebar{width:100%;min-width:0;height:44%;order:2;border-right:none;border-top:2px solid var(--ink);}
+    #mapwrap{order:1;height:56%;}
+  }
+
+  /* ---------- Colapso del sidebar ---------- */
+  #app.collapsed #sidebar{width:0;min-width:0;border-right:none;}
+  #app.collapsed #sidebar > *{opacity:0;pointer-events:none;}
+
+  #collapseBtn{
+    position:absolute;top:50%;left:340px;
+    transform:translate(-50%,-50%);
+    z-index:700;
+    width:26px;height:52px;border-radius:6px;
+    background:var(--ink);color:var(--parchment);border:2px solid var(--gold);
+    display:flex;align-items:center;justify-content:center;cursor:pointer;
+    font-size:16px;line-height:1;
+    box-shadow:0 2px 8px rgba(0,0,0,.4);
+    transition:left .25s ease;
+  }
+  #collapseBtn:hover{background:var(--ink-soft);}
+  #app.collapsed #collapseBtn{left:0;}
+
+  @media (max-width:760px){
+    #app.collapsed #sidebar{width:100%;height:0;min-width:0;}
+    #collapseBtn{top:44%;left:50%;transform:translate(-50%,-50%) rotate(90deg);}
+    #app.collapsed #collapseBtn{top:0;left:50%;transform:translate(-50%,-50%) rotate(-90deg);}
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <aside id="sidebar">
+    <header class="brand">
+      <div class="mark">Fuego y Palabra</div>
+      <h1>Atlas Bíblico</h1>
+      <p>Ciudades, batallas, profecías y predicaciones a través de las Escrituras</p>
+    </header>
+    <div id="filters">
+
+      <div class="fgroup">
+        <h2>Buscar</h2>
+        <input id="search" type="text" placeholder="Nombre del lugar…" autocomplete="off">
+      </div>
+
+      <div class="fgroup">
+        <h2>Testamento</h2>
+        <div class="chip-row" id="testChips"></div>
+      </div>
+
+      <div class="fgroup">
+        <h2>Tipo de lugar / evento <button class="clear" data-clear="tipos">todos</button></h2>
+        <div id="tipoList"></div>
+      </div>
+
+      <div class="fgroup">
+        <h2>Período <button class="clear" data-clear="periodos">todos</button></h2>
+        <div class="checklist" id="periodoList"></div>
+      </div>
+
+      <div class="fgroup">
+        <h2>Libro bíblico <button class="clear" data-clear="libros">todos</button></h2>
+        <div class="checklist" id="libroList"></div>
+      </div>
+
+    </div>
+    <div id="resultcount"></div>
+  </aside>
+
+  <div id="collapseBtn" title="Mostrar/ocultar menú">‹</div>
+
+  <div id="mapwrap">
+    <div id="map"></div>
+    <svg class="compass" viewBox="0 0 100 100">
+      <circle cx="50" cy="50" r="46" fill="#FBF6E8" stroke="#2B2118" stroke-width="2"/>
+      <g stroke="#2B2118" stroke-width="1">
+        <line x1="50" y1="6" x2="50" y2="94"/><line x1="6" y1="50" x2="94" y2="50"/>
+      </g>
+      <polygon points="50,12 56,50 50,88 44,50" fill="#A8452B"/>
+      <polygon points="12,50 50,44 88,50 50,56" fill="#2A5C63"/>
+      <text x="50" y="24" text-anchor="middle" font-family="Cinzel, serif" font-size="10" font-weight="700" fill="#2B2118">N</text>
+    </svg>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+<script src="lugares.js"></script>
+<script>
+/* ============ DATOS ============
+   n: nombre | lat,lng | t: testamento (AT/NT)
+   li: libros | ty: tipos | p: periodo | r: referencia | d: descripción
+*/
+const TYPE_META = {
+  "Ciudad":        {color:"#4A3B2A", icon:"C"},
+  "Guerra/Batalla": {color:"#A8452B", icon:"B"},
+  "Evento profético":{color:"#6B4E7C", icon:"P"},
+  "Predicación/Discurso":{color:"#2A5C63", icon:"D"},
+  "Milagro":       {color:"#B4903B", icon:"M"},
+  "Alianza/Pacto": {color:"#5C6B3D", icon:"A"},
+  "Exilio/Cautiverio":{color:"#5A5750", icon:"E"},
+  "Conversión/Encuentro":{color:"#C97B4A", icon:"K"}
+};
+
+
+/* ============ INICIALIZACIÓN DEL MAPA ============ */
+const map = L.map('map', {zoomControl:true, minZoom:2, worldCopyJump:true}).setView([33.5,35.5], 6);
+
+const baseTiles = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> colaboradores',
+  subdomains:'abc', maxZoom:19
+}).addTo(map);
+
+// Si por alguna razón los tiles no cargan (bloqueo de red, offline, etc.), se avisa en consola
+let tileErrorCount = 0;
+baseTiles.on('tileerror', () => {
+  tileErrorCount++;
+  if (tileErrorCount === 1) {
+    console.warn('No se pudieron cargar los mosaicos del mapa base. Verifica la conexión de red.');
+  }
+});
+
+function makeIcon(place){
+  const primary = place.ty[0];
+  const meta = TYPE_META[primary] || {color:"#4A3B2A", icon:"•"};
+  return L.divIcon({
+    className:'',
+    html:`<div class="divmarker" style="background:${meta.color}">${meta.icon}</div>`,
+    iconSize:[22,22], iconAnchor:[11,11], popupAnchor:[0,-10]
+  });
+}
+
+function popupHTML(p){
+  const tags = p.ty.map(t=>{
+    const meta = TYPE_META[t] || {color:"#777"};
+    return `<span class="pop-tag" style="background:${meta.color}">${t}</span>`;
+  }).join('');
+  const gmapsUrl = `https://www.google.com/maps/search/?api=1&query=${p.lat},${p.lng}`;
+  return `
+    <div class="pop-eyebrow">${p.t === 'AT' ? 'Antiguo Testamento' : 'Nuevo Testamento'} · ${p.p}</div>
+    <div class="pop-title">${p.n}</div>
+    <div class="pop-tags">${tags}</div>
+    <div class="pop-desc">${p.d}</div>
+    <div class="pop-ref"><b>Ref.</b> ${p.r} &nbsp;·&nbsp; <b>Libro(s)</b> ${p.li.join(', ')}</div>
+    <a class="pop-gmaps" href="${gmapsUrl}" target="_blank" rel="noopener noreferrer">Ver este lugar en Google Maps hoy →</a>
+  `;
+}
+
+const markers = PLACES.map(p=>{
+  const m = L.marker([p.lat,p.lng], {icon: makeIcon(p)});
+  m.bindPopup(popupHTML(p));
+  m._place = p;
+  return m;
+});
+const markerLayer = L.layerGroup(markers).addTo(map);
+
+/* ============ FILTROS ============ */
+const state = { search:'', testamentos:new Set(['AT','NT']), tipos:new Set(Object.keys(TYPE_META)), periodos:new Set(), libros:new Set() };
+
+// Orden canónico de los 66 libros (usado para ordenar el filtro de libros)
+const BIBLE_ORDER = [
+  "Génesis","Éxodo","Levítico","Números","Deuteronomio","Josué","Jueces","Rut",
+  "1 Samuel","2 Samuel","1 Reyes","2 Reyes","1 Crónicas","2 Crónicas","Ezra","Nehemías","Ester",
+  "Job","Salmos","Proverbios","Eclesiastés","Cantares",
+  "Isaías","Jeremías","Lamentaciones","Ezequiel","Daniel",
+  "Oseas","Joel","Amós","Abdías","Jonás","Miqueas","Nahúm","Habacuc","Sofonías","Hageo","Zacarías","Malaquías",
+  "Mateo","Marcos","Lucas","Juan","Hechos",
+  "Romanos","1 Corintios","2 Corintios","Gálatas","Efesios","Filipenses","Colosenses",
+  "1 Tesalonicenses","2 Tesalonicenses","1 Timoteo","2 Timoteo","Tito","Filemón",
+  "Hebreos","Santiago","1 Pedro","2 Pedro","1 Juan","2 Juan","3 Juan","Judas","Apocalipsis",
+  "Múltiples libros"
+];
+function bookSort(a,b){
+  const ia = BIBLE_ORDER.indexOf(a), ib = BIBLE_ORDER.indexOf(b);
+  return (ia===-1?999:ia) - (ib===-1?999:ib);
+}
+
+// listas únicas
+const allPeriodos = [...new Set(PLACES.map(p=>p.p))].sort();
+const allLibros = [...new Set(PLACES.flatMap(p=>p.li))].sort(bookSort);
+allPeriodos.forEach(p=>state.periodos.add(p));
+allLibros.forEach(l=>state.libros.add(l));
+
+// Testamento chips
+const testChips = document.getElementById('testChips');
+[['AT','Antiguo'],['NT','Nuevo']].forEach(([key,label])=>{
+  const chip = document.createElement('div');
+  chip.className='chip active'; chip.textContent=label; chip.dataset.key=key;
+  chip.onclick=()=>{
+    if(state.testamentos.has(key)){ state.testamentos.delete(key); chip.classList.remove('active'); }
+    else { state.testamentos.add(key); chip.classList.add('active'); }
+    render();
+  };
+  testChips.appendChild(chip);
+});
+
+// Tipo checkboxes con conteo
+const tipoList = document.getElementById('tipoList');
+Object.keys(TYPE_META).forEach(ty=>{
+  const count = PLACES.filter(p=>p.ty.includes(ty)).length;
+  const row = document.createElement('div'); row.className='type-item';
+  row.innerHTML = `<span class="swatch" style="background:${TYPE_META[ty].color}"></span>
+    <label>${ty}</label><span class="type-count">${count}</span>`;
+  const cb = document.createElement('input'); cb.type='checkbox'; cb.checked=true;
+  row.prepend(cb);
+  cb.onchange=()=>{ cb.checked ? state.tipos.add(ty) : state.tipos.delete(ty); render(); };
+  row.querySelector('label').onclick=()=>{ cb.checked=!cb.checked; cb.onchange(); };
+  tipoList.appendChild(row);
+});
+
+// Periodo checklist
+const periodoList = document.getElementById('periodoList');
+allPeriodos.forEach(p=>{
+  const row = document.createElement('div'); row.className='check-item';
+  const id='per_'+p.replace(/\W+/g,'');
+  row.innerHTML = `<input type="checkbox" id="${id}" checked><label for="${id}">${p}</label>`;
+  row.querySelector('input').onchange=(e)=>{ e.target.checked ? state.periodos.add(p) : state.periodos.delete(p); render(); };
+  periodoList.appendChild(row);
+});
+
+// Libro checklist
+const libroList = document.getElementById('libroList');
+allLibros.forEach(l=>{
+  const row = document.createElement('div'); row.className='check-item';
+  const id='lib_'+l.replace(/\W+/g,'');
+  row.innerHTML = `<input type="checkbox" id="${id}" checked><label for="${id}">${l}</label>`;
+  row.querySelector('input').onchange=(e)=>{ e.target.checked ? state.libros.add(l) : state.libros.delete(l); render(); };
+  libroList.appendChild(row);
+});
+
+// Buscador
+document.getElementById('search').addEventListener('input', e=>{
+  state.search = e.target.value.trim().toLowerCase();
+  render();
+});
+
+// Botones "todos" / limpiar-restaurar
+document.querySelectorAll('.clear').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    const target = btn.dataset.clear;
+    const allChecked = (target==='tipos' && state.tipos.size===Object.keys(TYPE_META).length) ||
+                        (target==='periodos' && state.periodos.size===allPeriodos.length) ||
+                        (target==='libros' && state.libros.size===allLibros.length);
+    let list, setRef, container;
+    if(target==='tipos'){ list=Object.keys(TYPE_META); setRef=state.tipos; container=tipoList; }
+    if(target==='periodos'){ list=allPeriodos; setRef=state.periodos; container=periodoList; }
+    if(target==='libros'){ list=allLibros; setRef=state.libros; container=libroList; }
+    container.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.checked = allChecked ? false : true );
+    setRef.clear();
+    if(!allChecked) list.forEach(x=>setRef.add(x));
+    btn.textContent = allChecked ? 'todos' : 'ninguno';
+    render();
+  });
+});
+
+// Colapsar/expandir menú lateral
+const appEl = document.getElementById('app');
+const collapseBtn = document.getElementById('collapseBtn');
+collapseBtn.addEventListener('click', ()=>{
+  appEl.classList.toggle('collapsed');
+  collapseBtn.textContent = appEl.classList.contains('collapsed') ? '›' : '‹';
+  setTimeout(()=> map.invalidateSize(), 260); // tras la transición CSS
+});
+
+function render(){
+  let visible = 0;
+  markers.forEach(m=>{
+    const p = m._place;
+    const okTest = state.testamentos.has(p.t);
+    const okTipo = p.ty.some(t=>state.tipos.has(t));
+    const okPeriodo = state.periodos.has(p.p);
+    const okLibro = p.li.some(l=>state.libros.has(l));
+    const okSearch = !state.search || p.n.toLowerCase().includes(state.search);
+    const ok = okTest && okTipo && okPeriodo && okLibro && okSearch;
+    const has = map.hasLayer(m);
+    if(ok && !has) markerLayer.addLayer(m);
+    if(!ok && has) markerLayer.removeLayer(m);
+    if(ok) visible++;
+  });
+  document.getElementById('resultcount').innerHTML = `<b>${visible}</b> de ${PLACES.length} lugares visibles`;
+}
+render();
+</script>
+</body>
+</html>
