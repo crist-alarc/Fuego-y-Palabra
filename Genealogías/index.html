@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Árbol Genealógico — Fuego y Palabra</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --parchment:#E9DFC3; --ink:#2B2118; --ink-soft:#4A3B2A;
+    --terracotta:#A8452B; --teal:#2A5C63; --gold:#B4903B; --purple:#6B4E7C;
+    --paper-line: rgba(43,33,24,0.14);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;height:100%;font-family:'EB Garamond', serif;color:var(--ink);background:var(--parchment);}
+  #app{display:flex;height:100vh;width:100vw;overflow:hidden;position:relative;}
+
+  #sidebar{
+    width:330px;min-width:330px;background:var(--parchment);
+    border-right:2px solid var(--ink);display:flex;flex-direction:column;overflow:hidden;
+    transition:width .25s ease, min-width .25s ease;
+  }
+  header.brand{padding:20px 22px 12px;border-bottom:2px solid var(--ink);}
+  header.brand .mark{font-family:'Cinzel',serif;font-weight:700;font-size:11px;letter-spacing:.18em;color:var(--terracotta);text-transform:uppercase;}
+  header.brand h1{font-family:'Cinzel',serif;font-weight:700;font-size:23px;line-height:1.15;margin:6px 0 4px;}
+  header.brand p{margin:0;font-size:13px;color:var(--ink-soft);font-style:italic;}
+  header.brand .fase{display:inline-block;margin-top:8px;font-family:'IBM Plex Mono',monospace;font-size:10px;background:var(--gold);color:var(--ink);padding:2px 8px;border-radius:10px;}
+
+  #filters{flex:1;overflow-y:auto;padding:14px 20px 30px;}
+  #filters::-webkit-scrollbar{width:7px;}
+  #filters::-webkit-scrollbar-thumb{background:var(--ink-soft);border-radius:4px;}
+
+  .fgroup{margin-bottom:18px;}
+  .fgroup h2{font-family:'Cinzel',serif;font-size:12px;letter-spacing:.1em;text-transform:uppercase;margin:0 0 8px;padding-bottom:5px;border-bottom:1px solid var(--paper-line);}
+
+  #search-wrap{position:relative;}
+  #search-input{width:100%;padding:8px 30px 8px 10px;font-family:'EB Garamond',serif;font-size:14.5px;border:1px solid var(--ink-soft);border-radius:3px;background:#FBF6E8;color:var(--ink);}
+  #search-clear{position:absolute;right:8px;top:7px;cursor:pointer;color:var(--terracotta);font-size:14px;display:none;}
+  .search-hint{font-size:11.5px;color:var(--ink-soft);font-style:italic;margin-top:5px;}
+
+  .radio-row, .check-item{display:flex;align-items:center;gap:7px;padding:4px 2px;font-size:13.5px;}
+  .radio-row input, .check-item input{accent-color:var(--ink);cursor:pointer;}
+  .radio-row label, .check-item label{cursor:pointer;display:flex;align-items:center;gap:6px;}
+  .dot{width:10px;height:10px;border-radius:50%;display:inline-block;}
+  .linea-swatch{width:16px;height:3px;display:inline-block;}
+
+  .checklist{max-height:150px;overflow-y:auto;border:1px solid var(--paper-line);border-radius:4px;padding:3px 8px;background:rgba(255,255,255,.25);}
+  .checklist::-webkit-scrollbar{width:6px;}
+
+  .btnrow{display:flex;gap:8px;}
+  .btnrow button{flex:1;font-family:'IBM Plex Mono',monospace;font-size:11px;padding:7px 4px;border:1px solid var(--ink-soft);background:#FBF6E8;color:var(--ink-soft);border-radius:4px;cursor:pointer;}
+  .btnrow button:hover{background:var(--ink);color:var(--parchment);}
+
+  #treewrap{flex:1;position:relative;overflow:scroll;background:#DCD3B4;}
+  #tree-svg{display:block;margin-left:230px;margin-top:300px;}
+  .node{cursor:pointer;}
+  .node-rect{fill:#FBF6E8;stroke:var(--ink);stroke-width:1.4;transition:.15s;}
+  .node:hover .node-rect{fill:#fff; filter:drop-shadow(0 2px 4px rgba(0,0,0,.3));}
+  .node-jesus{fill:#fff3d6;stroke:var(--gold);stroke-width:2.5;}
+  .node-conyuge .node-rect{stroke-dasharray:3,2;opacity:0.9;}
+  .node-text{font-family:'EB Garamond',serif;font-size:13px;fill:var(--ink);pointer-events:none;}
+  .toggle-circle{fill:var(--ink);cursor:pointer;}
+  .toggle-circle:hover{fill:var(--terracotta);}
+  .toggle-text{font-family:'IBM Plex Mono',monospace;font-size:12px;fill:#FBF6E8;}
+  .era-label{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.08em;opacity:.8;}
+  .year-tick{font-family:'IBM Plex Mono',monospace;font-size:10px;fill:var(--ink-soft);opacity:.75;}
+
+  /* ---------- Panel flotante de navegación por época (fijo al viewport) ---------- */
+  #era-nav-wrap{position:fixed;top:14px;left:344px;z-index:60;transition:left .25s ease;}
+  #app.collapsed #era-nav-wrap{left:14px;}
+  #era-nav{
+    display:flex;flex-direction:column;gap:5px;
+    background:rgba(251,246,232,0.92);border:1px solid var(--ink);border-radius:6px;
+    padding:8px 10px;box-shadow:0 3px 10px rgba(0,0,0,.25);max-width:190px;
+  }
+  .era-pill{
+    display:flex;align-items:center;gap:7px;font-family:'IBM Plex Mono',monospace;font-size:10.5px;
+    cursor:pointer;padding:3px 5px;border-radius:4px;color:var(--ink-soft);transition:.15s;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  }
+  .era-pill:hover{background:rgba(43,33,24,0.07);}
+  .era-pill.active{background:var(--ink);color:var(--parchment);}
+  .era-pill .dot{width:9px;height:9px;border-radius:50%;flex:none;}
+
+  /* ---------- Control de zoom (fijo al viewport) ---------- */
+  #zoom-nav{
+    position:fixed;bottom:34px;right:22px;z-index:60;display:flex;flex-direction:column;gap:4px;
+    background:rgba(251,246,232,0.92);border:1px solid var(--ink);border-radius:6px;
+    padding:6px;box-shadow:0 3px 10px rgba(0,0,0,.25);
+  }
+  #zoom-nav button{
+    width:36px;height:30px;border:1px solid var(--ink-soft);background:#FBF6E8;border-radius:4px;
+    font-family:'IBM Plex Mono',monospace;cursor:pointer;font-size:15px;color:var(--ink);
+  }
+  #zoom-nav button:hover{background:var(--ink);color:var(--parchment);}
+  #zoom-level{font-family:'IBM Plex Mono',monospace;font-size:10px;text-align:center;color:var(--ink-soft);}
+
+  #collapseBtn{
+    position:absolute;top:50%;left:330px;transform:translate(-50%,-50%);
+    z-index:700;width:26px;height:52px;border-radius:6px;
+    background:var(--ink);color:var(--parchment);border:2px solid var(--gold);
+    display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;
+    box-shadow:0 2px 8px rgba(0,0,0,.4);transition:left .25s ease;
+  }
+  #app.collapsed #sidebar{width:0;min-width:0;}
+  #app.collapsed #collapseBtn{left:0;}
+
+  /* Modal ficha */
+  #modal{position:fixed;inset:0;background:rgba(43,33,24,.55);display:none;align-items:center;justify-content:center;z-index:2000;}
+  #modal.open{display:flex;}
+  #modal-card{background:#FBF6E8;border:1px solid var(--ink);border-radius:4px;max-width:420px;width:90%;padding:24px 26px;position:relative;box-shadow:0 10px 30px rgba(0,0,0,.4);}
+  #modal-close{position:absolute;top:10px;right:14px;cursor:pointer;font-size:20px;color:var(--ink-soft);}
+  .ficha-eyebrow{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--terracotta);margin-bottom:4px;}
+  .ficha-title{font-family:'Cinzel',serif;font-weight:700;font-size:22px;margin-bottom:6px;}
+  .ficha-rol{display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:11px;background:var(--gold);color:var(--ink);padding:2px 9px;border-radius:10px;margin-bottom:10px;}
+  .ficha-periodo{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--teal);margin-bottom:8px;}
+  .ficha-bio{font-size:15px;line-height:1.5;color:var(--ink-soft);margin-bottom:10px;}
+  .ficha-versiculos, .ficha-libros{font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--ink);margin-top:6px;}
+  .ficha-fuente{margin-top:10px;font-size:12px;font-style:italic;color:var(--purple);border-top:1px dashed var(--paper-line);padding-top:8px;}
+</style>
+</head>
+<body>
+<div id="app">
+  <aside id="sidebar">
+    <header class="brand">
+      <div class="mark">Fuego y Palabra</div>
+      <h1>Árbol Genealógico</h1>
+      <p>De Adán a Jesús — y los sumos sacerdotes de Israel</p>
+      <span class="fase">Fase 1: tronco Adán–David</span>
+    </header>
+    <div id="filters">
+
+      <div class="fgroup">
+        <h2>Buscar personaje</h2>
+        <div id="search-wrap">
+          <input id="search-input" type="text" placeholder="Nombre…" autocomplete="off">
+          <span id="search-clear">✕</span>
+        </div>
+        <div class="search-hint">Muestra solo la línea desde Adán hasta el personaje encontrado.</div>
+      </div>
+
+      <div class="fgroup">
+        <h2>Línea genealógica</h2>
+        <div class="radio-row"><input type="checkbox" name="linea" value="jesus_mateo" id="l1"><label for="l1"><span class="linea-swatch" style="background:#C97B4A"></span>Jesús (vía Mateo)</label></div>
+        <div class="radio-row"><input type="checkbox" name="linea" value="jesus_lucas" id="l2"><label for="l2"><span class="linea-swatch" style="background:#E8A25A"></span>Jesús (vía Lucas)</label></div>
+        <div class="radio-row"><input type="checkbox" name="linea" value="sumos_sacerdotes" id="l3"><label for="l3"><span class="linea-swatch" style="background:#6B4E7C"></span>Sumos sacerdotes</label></div>
+      </div>
+
+      <div class="fgroup">
+        <h2>Época</h2>
+        <div class="checklist" id="epoca-list"></div>
+      </div>
+
+      <div class="fgroup">
+        <h2>Libro bíblico</h2>
+        <div class="checklist" id="libro-list"></div>
+      </div>
+
+      <div class="fgroup">
+        <h2>Árbol</h2>
+        <div class="btnrow">
+          <button id="expand-all">Expandir todo</button>
+          <button id="collapse-all">Colapsar todo</button>
+        </div>
+      </div>
+
+    </div>
+  </aside>
+
+  <div id="collapseBtn">‹</div>
+
+  <div id="treewrap">
+    <div id="era-nav-wrap"><div id="era-nav"></div></div>
+    <div id="zoom-nav">
+      <button id="zoom-in" title="Acercar">+</button>
+      <div id="zoom-level">100%</div>
+      <button id="zoom-out" title="Alejar">−</button>
+      <button id="zoom-reset" title="Restablecer">⤾</button>
+    </div>
+    <svg id="tree-svg" xmlns="http://www.w3.org/2000/svg">
+      <g id="layer-bands"></g>
+      <g id="layer-years"></g>
+      <g id="layer-links"></g>
+      <g id="layer-nodes"></g>
+    </svg>
+  </div>
+</div>
+
+<div id="modal">
+  <div id="modal-card">
+    <span id="modal-close">✕</span>
+    <div id="modal-body"></div>
+  </div>
+</div>
+
+<script src="personas.js"></script>
+<script src="relaciones.js"></script>
+<script src="epocas.js"></script>
+<script src="app.js"></script>
+<script>
+  const appEl = document.getElementById('app');
+  const collapseBtn = document.getElementById('collapseBtn');
+  collapseBtn.addEventListener('click', ()=>{
+    appEl.classList.toggle('collapsed');
+    collapseBtn.textContent = appEl.classList.contains('collapsed') ? '›' : '‹';
+  });
+</script>
+</body>
+</html>
