@@ -88,6 +88,17 @@
     background:#FBF6E8;color:var(--ink-soft);transition:.15s;
   }
   .chip.active{background:var(--ink);color:var(--parchment);border-color:var(--ink);}
+  #estiloChips .chip{flex:0 1 calc(50% - 4px);}
+  #tile-warning{
+    display:none;position:absolute;top:16px;left:50%;transform:translateX(-50%);z-index:900;
+    background:#3B2416;color:#FBF6E8;padding:9px 16px;border-radius:6px;border:1px solid var(--gold);
+    font-family:'IBM Plex Mono',monospace;font-size:12px;box-shadow:0 4px 14px rgba(0,0,0,.4);
+    max-width:80%;text-align:center;
+  }
+  #tile-warning button{
+    margin-left:10px;background:var(--gold);color:var(--ink);border:none;border-radius:4px;
+    padding:3px 10px;font-family:'IBM Plex Mono',monospace;font-size:11px;cursor:pointer;
+  }
 
   .type-item{
     display:flex;align-items:center;gap:9px;padding:6px 4px;cursor:pointer;border-radius:4px;
@@ -163,6 +174,7 @@
   .line-item .line-text{flex:1;}
   .line-item .line-text .lname{font-size:14.5px;display:block;}
   .line-item .line-text .lref{font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--ink-soft);display:block;margin-top:1px;}
+  .area-swatch{width:20px;height:14px;margin-top:2px;flex:none;border-radius:2px;border:1.5px solid;opacity:.85;}
 
   @media (max-width:760px){
     #app{flex-direction:column;}
@@ -206,6 +218,11 @@
     <div id="filters">
 
       <div class="fgroup">
+        <h2>Estilo del mapa</h2>
+        <div class="chip-row" id="estiloChips" style="flex-wrap:wrap;"></div>
+      </div>
+
+      <div class="fgroup">
         <h2>Buscar</h2>
         <input id="search" type="text" placeholder="Nombre del lugar…" autocomplete="off">
       </div>
@@ -235,6 +252,12 @@
         <div id="journeyList"></div>
       </div>
 
+      <div class="fgroup">
+        <h2>Fronteras históricas</h2>
+        <div id="fronteraList"></div>
+        <p style="font-family:'EB Garamond',serif;font-size:12px;font-style:italic;color:var(--ink-soft);margin-top:8px;line-height:1.4;">Fronteras aproximadas e ilustrativas — los límites antiguos no están documentados con precisión cartográfica.</p>
+      </div>
+
     </div>
     <div id="resultcount"></div>
   </aside>
@@ -243,6 +266,7 @@
 
   <div id="mapwrap">
     <div id="map"></div>
+    <div id="tile-warning"></div>
     <svg class="compass" viewBox="0 0 100 100">
       <circle cx="50" cy="50" r="46" fill="#FBF6E8" stroke="#2B2118" stroke-width="2"/>
       <g stroke="#2B2118" stroke-width="1">
@@ -258,6 +282,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
 <script src="lugares.js"></script>
 <script src="viajes.js"></script>
+<script src="fronteras.js"></script>
 <script>
 /* ============ DATOS ============
    n: nombre | lat,lng | t: testamento (AT/NT)
@@ -278,18 +303,90 @@ const TYPE_META = {
 /* ============ INICIALIZACIÓN DEL MAPA ============ */
 const map = L.map('map', {zoomControl:true, minZoom:2, worldCopyJump:true}).setView([33.5,35.5], 6);
 
-const baseTiles = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-  attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> colaboradores',
-  subdomains:'abc', maxZoom:19
-}).addTo(map);
-
-// Si por alguna razón los tiles no cargan (bloqueo de red, offline, etc.), se avisa en consola
-let tileErrorCount = 0;
-baseTiles.on('tileerror', () => {
-  tileErrorCount++;
-  if (tileErrorCount === 1) {
-    console.warn('No se pudieron cargar los mosaicos del mapa base. Verifica la conexión de red.');
+// Estilos de mapa disponibles — todos gratuitos, sin necesidad de clave API.
+const MAP_STYLES = {
+  clasico: {
+    nombre: "Clásico (pergamino)",
+    url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> colaboradores',
+    subdomains: "abc", maxZoom: 19,
+    filtro: "sepia(45%) saturate(55%) brightness(1.12) contrast(0.92) hue-rotate(-8deg)"
+  },
+  topografico: {
+    nombre: "Topográfico (relieve)",
+    url: "https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png",
+    attribution: '&copy; OpenStreetMap colaboradores, SRTM | &copy; <a href="https://opentopomap.org">OpenTopoMap</a>',
+    subdomains: "abc", maxZoom: 17,
+    filtro: "sepia(20%) saturate(75%) brightness(1.05)"
+  },
+  satelite: {
+    nombre: "Satélite",
+    url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+    attribution: "Tiles &copy; Esri — Source: Esri, Maxar, Earthstar Geographics",
+    maxZoom: 19,
+    filtro: "none"
+  },
+  claro: {
+    nombre: "Claro (calles simples)",
+    url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}",
+    attribution: "Tiles &copy; Esri — Source: Esri, HERE, Garmin",
+    maxZoom: 19,
+    filtro: "sepia(15%) saturate(70%)"
   }
+};
+
+let baseTiles = null;
+let tileErrorCount = 0;
+const tileWarning = document.getElementById("tile-warning");
+
+function ocultarAvisoMosaicos() { tileWarning.style.display = "none"; }
+
+function mostrarAvisoMosaicos(nombreEstilo) {
+  tileWarning.innerHTML = `⚠ No se pudo cargar el estilo "${nombreEstilo}".
+    <button id="volver-clasico-btn">Volver a Clásico</button>`;
+  tileWarning.style.display = "block";
+  document.getElementById("volver-clasico-btn").onclick = () => {
+    estiloChips.querySelectorAll(".chip").forEach(c => c.classList.remove("active"));
+    estiloChips.querySelector('[data-clave="clasico"]').classList.add("active");
+    aplicarEstiloMapa("clasico");
+  };
+}
+
+function aplicarEstiloMapa(claveEstilo) {
+  const estilo = MAP_STYLES[claveEstilo];
+  if (!estilo) return;
+  ocultarAvisoMosaicos();
+  if (baseTiles) map.removeLayer(baseTiles);
+  baseTiles = L.tileLayer(estilo.url, {
+    attribution: estilo.attribution,
+    subdomains: estilo.subdomains || "abc",
+    maxZoom: estilo.maxZoom || 19
+  }).addTo(map);
+  document.querySelector(".leaflet-tile-pane").style.filter = estilo.filtro;
+  tileErrorCount = 0;
+  baseTiles.on("tileerror", () => {
+    tileErrorCount++;
+    if (tileErrorCount === 3) {
+      console.warn("No se pudieron cargar los mosaicos de este estilo de mapa. Puede ser un bloqueo de red o que el proveedor no esté disponible.");
+      if (claveEstilo !== "clasico") mostrarAvisoMosaicos(estilo.nombre);
+    }
+  });
+}
+aplicarEstiloMapa("clasico");
+
+// Selector de estilo de mapa
+const estiloChips = document.getElementById("estiloChips");
+Object.entries(MAP_STYLES).forEach(([clave, estilo], i) => {
+  const chip = document.createElement("div");
+  chip.className = "chip" + (i === 0 ? " active" : "");
+  chip.textContent = estilo.nombre;
+  chip.dataset.clave = clave;
+  chip.onclick = () => {
+    estiloChips.querySelectorAll(".chip").forEach(c => c.classList.remove("active"));
+    chip.classList.add("active");
+    aplicarEstiloMapa(clave);
+  };
+  estiloChips.appendChild(chip);
 });
 
 function makeIcon(place){
@@ -381,6 +478,34 @@ journeyGroups.forEach(jg=>{
   cb.onchange = ()=>{ cb.checked ? jg.layer.addTo(map) : map.removeLayer(jg.layer); };
   row.querySelector('.line-text').onclick = ()=>{ cb.checked = !cb.checked; cb.onchange(); };
   journeyList.appendChild(row);
+});
+
+/* ============ FRONTERAS HISTÓRICAS ============ */
+const fronteraLayers = (typeof FRONTERAS !== 'undefined' ? FRONTERAS : []).map(f => {
+  const polygon = L.polygon(f.puntos, {
+    color: f.color, weight: 2, fillColor: f.color, fillOpacity: 0.18, opacity: 0.75
+  });
+  polygon.bindPopup(`
+    <div class="pop-eyebrow">Frontera histórica</div>
+    <div class="pop-title">${f.n}</div>
+    <div class="pop-tags"><span class="pop-tag" style="background:${f.color}">${f.periodo}</span></div>
+    <div class="pop-desc">${f.d}</div>
+  `);
+  return { meta: f, layer: polygon };
+});
+
+const fronteraList = document.getElementById('fronteraList');
+fronteraLayers.forEach(fg => {
+  const row = document.createElement('div'); row.className = 'line-item';
+  row.innerHTML = `
+    <div class="area-swatch" style="background:${fg.meta.color}44;border-color:${fg.meta.color}"></div>
+    <div class="line-text"><span class="lname">${fg.meta.n}</span><span class="lref">${fg.meta.periodo}</span></div>
+  `;
+  const cb = document.createElement('input'); cb.type = 'checkbox'; cb.checked = false;
+  row.prepend(cb);
+  cb.onchange = () => { cb.checked ? fg.layer.addTo(map) : map.removeLayer(fg.layer); };
+  row.querySelector('.line-text').onclick = () => { cb.checked = !cb.checked; cb.onchange(); };
+  fronteraList.appendChild(row);
 });
 
 /* ============ FILTROS ============ */
