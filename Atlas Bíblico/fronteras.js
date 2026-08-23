@@ -124,6 +124,20 @@ const FRONTERAS = [
       [31.0,33.5],[29.5,25.0],[31.5,20.0],[35.0,15.0],[38.0,18.0],
       [40.5,20.0],[43.0,22.0],[45.0,28.0]
     ]
+  },
+  {
+    id: "israel_actual",
+    n: "Israel (fronteras actuales)",
+    periodo: "Desde 1949, para comparar con la geografía bíblica",
+    color: "#1E5AA8",
+    d: "Territorio del Estado de Israel según las líneas de armisticio de 1949 ('línea verde'), la referencia más usada internacionalmente para su territorio soberano reconocido. Cisjordania, la Franja de Gaza y los Altos del Golán tienen un estatus disputado bajo el derecho internacional y no se incluyen en este contorno.",
+    puntos: [
+      [33.27,35.59],[33.09,35.11],[32.83,34.97],[32.05,34.77],
+      [31.75,34.65],[31.35,34.35],[31.22,34.24],[30.85,34.36],
+      [29.55,34.87],[29.85,34.96],[31.00,35.42],[31.50,35.22],
+      [31.85,35.18],[32.15,34.98],[32.45,35.03],[32.60,35.35],
+      [32.72,35.55],[33.09,35.57],[33.27,35.59]
+    ]
   }
 ];
 
