@@ -1,44 +1,9 @@
 /* ==========================================================
    Fuego y Palabra — base.css
-   Tokens, reset y tipografía compartidos por todas las páginas.
-   Cada página añade su propio CSS encima (home.css, atlas.css…).
+   Reset y tipografía para páginas de lectura (portada).
+   Requiere tokens.css cargado antes.
+   Las apps NO cargan este archivo: usan app.css.
    ========================================================== */
-
-:root {
-  /* Color */
-  --bg: #fafaf8;
-  --ink: #1f2430;
-  --muted: #6b7080;
-  --line: #e4e4df;
-  --accent: #9e2b25;
-
-  /* Tipografía */
-  --serif: "Newsreader", Georgia, "Times New Roman", serif;
-  --sans: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
-
-  /* Escala */
-  --text-sm: 0.85rem;
-  --text-base: 1.125rem;
-  --text-lg: 1.65rem;
-  --text-xl: clamp(2.4rem, 7vw, 3.75rem);
-
-  /* Espaciado y layout */
-  --space-1: 0.5rem;
-  --space-2: 1rem;
-  --space-3: 1.75rem;
-  --space-4: 4rem;
-  --measure: 44rem;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --bg: #15171c;
-    --ink: #ebe9e4;
-    --muted: #9a9ca6;
-    --line: #2a2d35;
-    --accent: #e0786d;
-  }
-}
 
 *, *::before, *::after { box-sizing: border-box; }
 
