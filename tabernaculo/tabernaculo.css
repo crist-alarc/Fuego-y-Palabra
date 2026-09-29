@@ -1,5 +1,29 @@
 /* Tabernáculo 3D (tabernaculo/index.html) — se apoya en assets/css/base.css */
 
+/* ---------- Respaldo de base.css ----------
+   Si ../assets/css/base.css no carga (ruta o nombre distinto en el servidor),
+   estos valores mantienen la página con su diseño. Usan :where() (especificidad 0),
+   así que cuando base.css sí carga, manda base.css. */
+:where(:root) {
+  --bg: #fafaf8; --ink: #1f2430; --muted: #6b7080; --line: #e4e4df; --accent: #9e2b25;
+  --serif: "Newsreader", Georgia, "Times New Roman", serif;
+  --sans: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --text-sm: 0.85rem; --text-base: 1.125rem; --text-lg: 1.65rem; --text-xl: clamp(2.4rem, 7vw, 3.75rem);
+}
+@media (prefers-color-scheme: dark) {
+  :where(:root:not([data-theme="light"])) { --bg: #15171c; --ink: #ebe9e4; --muted: #9a9ca6; --line: #2a2d35; --accent: #e0786d; }
+}
+:where(*, *::before, *::after) { box-sizing: border-box; }
+:where(html) { background: var(--bg); }
+:where(body) { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--serif); font-size: var(--text-base); line-height: 1.6; -webkit-font-smoothing: antialiased; }
+:where(h1, h2, h3) { font-weight: 400; line-height: 1.15; letter-spacing: -0.01em; margin: 0; }
+:where(h1) { font-size: var(--text-xl); letter-spacing: -0.02em; }
+:where(p) { margin: 0; }
+:where(.brand) { display: flex; align-items: center; gap: 0.6rem; font-family: var(--sans); font-size: 0.9rem; font-weight: 500; color: var(--muted); text-decoration: none; }
+:where(.brand)::before { content: ""; width: 0.5rem; height: 0.5rem; border-radius: 50%; background: var(--accent); }
+:where(:focus-visible) { outline: 2px solid var(--accent); outline-offset: 4px; }
+
+
 /* El interruptor Día/Noche fija data-theme; base.css solo cubre la preferencia del sistema */
 :root[data-theme="dark"] {
   --bg: #15171c;
