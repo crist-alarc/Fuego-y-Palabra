@@ -1,1 +1,73 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>El tabernáculo · Fuego y Palabra</title>
+  <meta name="description" content="Modelo 3D del tabernáculo de Moisés según Éxodo 25–40, con cada mueble, sus medidas y sus referencias.">
+  <meta name="theme-color" content="#fafaf8">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%94%A5%3C/text%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500&family=Inter:wght@500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/css/base.css">
+  <link rel="stylesheet" href="tabernaculo.css">
+</head>
+<body class="tabernaculo">
+  <div class="tb-app">
+    <aside class="tb-panel">
+      <header class="tb-head">
+        <a class="brand" href="../">Fuego y Palabra</a>
+        <h1>El tabernáculo</h1>
+        <p class="lead">Recorre el santuario del desierto desde la puerta del atrio hasta el arca, y sigue paso a paso los sacrificios que se celebraban en él.</p>
+      </header>
+      <div class="tabs" role="tablist" aria-label="Recorridos">
+        <button class="tab" id="tab-partes" role="tab" type="button" aria-selected="true">Partes</button>
+        <button class="tab" id="tab-cer" role="tab" type="button" aria-selected="false">Ceremonias</button>
+      </div>
+      <ol class="stations" id="stations" aria-label="Partes del tabernáculo"></ol>
+      <div class="ceremonies" id="ceremonies" hidden></div>
+    </aside>
 
+    <main class="tb-stage" id="stage">
+      <canvas id="scene" tabindex="0" aria-label="Modelo 3D del tabernáculo. Arrastra para girar y usa la rueda o pellizca para acercar."></canvas>
+      <div class="tb-compass" id="compass" aria-hidden="true">
+        <svg viewBox="0 0 44 44">
+          <circle class="ring" cx="22" cy="22" r="20.5"/>
+          <g id="needle">
+            <polygon class="needle" points="22,7 25.5,22 18.5,22"/>
+            <polygon class="tail" points="22,37 25.5,22 18.5,22"/>
+            <text x="22" y="6" text-anchor="middle" dominant-baseline="auto">N</text>
+          </g>
+        </svg>
+      </div>
+      <div class="tb-toolbar" role="toolbar" aria-label="Controles de la escena">
+        <button class="btn" id="t-covers" type="button" aria-pressed="true">Cubiertas</button>
+        <button class="btn" id="t-scale" type="button" aria-pressed="false">Escala</button>
+        <button class="btn" id="t-tribes" type="button" aria-pressed="false">Tribus</button>
+        <button class="btn" id="t-theme" type="button">Ver de noche</button>
+        <button class="btn" id="t-home" type="button">Vista general</button>
+      </div>
+      <p class="tb-hint">Arrastra para girar. Toca un objeto para verlo.</p>
+      <p class="tb-fallback" id="fallback" hidden>No se pudo cargar el visor 3D. Revisa tu conexión y vuelve a abrir la página.</p>
+    </main>
+
+    <article class="tb-detail" id="detail" aria-live="polite">
+      <p class="kicker" id="d-kicker" hidden></p>
+      <h2 id="d-title"></h2>
+      <p class="ref" id="d-ref"></p>
+      <dl id="d-rows"></dl>
+      <p class="desc" id="d-desc"></p>
+      <nav class="tb-nav" aria-label="Recorrido">
+        <button class="linkbtn" id="prev" type="button">Anterior</button>
+        <span class="pos" id="d-pos"></span>
+        <button class="linkbtn" id="next" type="button">Siguiente</button>
+      </nav>
+    </article>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
