@@ -1,20 +1,100 @@
-/* Portada (index.html) */
+/* ==========================================================
+   Fuego y Palabra — base.css
+   Tokens, reset y tipografía compartidos por todas las páginas.
+   Cada página añade su propio CSS encima (home.css, atlas.css…).
+   ========================================================== */
 
-.home .brand { margin-bottom: 4.5rem; }
-.home h1 { max-width: 14ch; margin-bottom: 1.25rem; }
-.home .lead { color: var(--muted); max-width: 34rem; margin-bottom: 4.5rem; }
+:root {
+  /* Color */
+  --bg: #fafaf8;
+  --ink: #1f2430;
+  --muted: #6b7080;
+  --line: #e4e4df;
+  --accent: #9e2b25;
 
-.resources { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line); }
-.resources li { border-bottom: 1px solid var(--line); }
+  /* Tipografía */
+  --serif: "Newsreader", Georgia, "Times New Roman", serif;
+  --sans: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
 
-.resource { display: block; padding: var(--space-3) 0; text-decoration: none; }
-.resource h2 {
-  display: inline;
-  font-weight: 500;
-  font-size: var(--text-lg);
-  background: linear-gradient(var(--accent), var(--accent)) 0 100% / 0 1px no-repeat;
-  transition: background-size 0.25s ease;
+  /* Escala */
+  --text-sm: 0.85rem;
+  --text-base: 1.125rem;
+  --text-lg: 1.65rem;
+  --text-xl: clamp(2.4rem, 7vw, 3.75rem);
+
+  /* Espaciado y layout */
+  --space-1: 0.5rem;
+  --space-2: 1rem;
+  --space-3: 1.75rem;
+  --space-4: 4rem;
+  --measure: 44rem;
 }
-.resource:hover h2,
-.resource:focus-visible h2 { background-size: 100% 1px; }
-.resource p { margin-top: 0.5rem; color: var(--muted); font-size: 1.05rem; }
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #15171c;
+    --ink: #ebe9e4;
+    --muted: #9a9ca6;
+    --line: #2a2d35;
+    --accent: #e0786d;
+  }
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html { background: var(--bg); }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--serif);
+  font-size: var(--text-base);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3 { font-weight: 400; line-height: 1.15; letter-spacing: -0.01em; margin: 0; }
+h1 { font-size: var(--text-xl); letter-spacing: -0.02em; }
+p { margin: 0; }
+a { color: inherit; }
+img, svg { max-width: 100%; height: auto; }
+
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
+
+/* Layout */
+.wrap {
+  max-width: var(--measure);
+  margin: 0 auto;
+  padding: clamp(2.5rem, 9vw, 6rem) 1.5rem var(--space-4);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-family: var(--sans);
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--muted);
+  text-decoration: none;
+}
+.brand::before {
+  content: "";
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px; height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; animation: none !important; }
+}
