@@ -317,7 +317,7 @@ function render() {
     const tick = document.createElementNS(svgNS, "line");
     tick.setAttribute("x1", RULER_WIDTH - 10); tick.setAttribute("x2", RULER_WIDTH - 2);
     tick.setAttribute("y1", yPix); tick.setAttribute("y2", yPix);
-    tick.setAttribute("stroke", "#2B2118"); tick.setAttribute("stroke-width", "1");
+    tick.setAttribute("stroke", "#6b7080"); tick.setAttribute("stroke-width", "1");
     tick.setAttribute("opacity", "0.5");
     layerYears.appendChild(tick);
 
@@ -332,7 +332,7 @@ function render() {
   const rulerLine = document.createElementNS(svgNS, "line");
   rulerLine.setAttribute("x1", RULER_WIDTH); rulerLine.setAttribute("x2", RULER_WIDTH);
   rulerLine.setAttribute("y1", 0); rulerLine.setAttribute("y2", height);
-  rulerLine.setAttribute("stroke", "#2B2118"); rulerLine.setAttribute("stroke-width", "1"); rulerLine.setAttribute("opacity", "0.35");
+  rulerLine.setAttribute("stroke", "#6b7080"); rulerLine.setAttribute("stroke-width", "1"); rulerLine.setAttribute("opacity", "0.35");
   layerYears.appendChild(rulerLine);
 
   function drawBand(y0, y1, epocaId, width) {
@@ -367,8 +367,8 @@ function render() {
     const midY = (y1 + y2) / 2;
     path.setAttribute("d", `M ${x1} ${y1} C ${x1} ${midY}, ${x2} ${midY}, ${x2} ${y2}`);
     path.setAttribute("fill", "none");
-    let color = "#8a7d63";
-    if (highlighted) color = LINEA_COLOR[r.lineas.find(l=>state.lineas.has(l))] || "#8a7d63";
+    let color = "#a9aba3";
+    if (highlighted) color = LINEA_COLOR[r.lineas.find(l=>state.lineas.has(l))] || "#a9aba3";
     path.setAttribute("stroke", color);
     path.setAttribute("stroke-width", highlighted ? 3.5 : 2);
     path.setAttribute("opacity", dimmed ? 0.15 : 0.85);
@@ -386,7 +386,7 @@ function render() {
     line.setAttribute("y1", a.y * ROW_HEIGHT + ROW_HEIGHT * 0.38);
     line.setAttribute("x2", b.x * COL_WIDTH + COL_WIDTH + RULER_WIDTH);
     line.setAttribute("y2", b.y * ROW_HEIGHT + ROW_HEIGHT * 0.38);
-    line.setAttribute("stroke", "#4A3B2A");
+    line.setAttribute("stroke", "#6b7080");
     line.setAttribute("stroke-width", 1.5);
     line.setAttribute("stroke-dasharray", "3,4");
     line.setAttribute("opacity", "0.6");
@@ -451,18 +451,17 @@ function render() {
 const modal = document.getElementById("modal");
 const modalBody = document.getElementById("modal-body");
 function abrirFicha(p) {
-  const rolHtml = p.rol ? `<span class="ficha-rol">${ROL_ICON[p.rol]} ${ROL_LABEL[p.rol]}</span>` : "";
-  const periodoHtml = p.periodo ? `<div class="ficha-periodo">📅 ${p.periodo}</div>` : "";
+  const rolHtml = p.rol ? `<span class="tag">${ROL_ICON[p.rol]} ${ROL_LABEL[p.rol]}</span>` : "";
+  const periodoHtml = p.periodo ? `<span class="ficha-periodo">${p.periodo}</span>` : "";
+  const metaFila = (rolHtml || periodoHtml) ? `<div class="ficha-roles">${rolHtml}${periodoHtml}</div>` : "";
   const fuenteNote = p.fuente === "extrabiblica"
-    ? `<div class="ficha-fuente">Fuente: registro histórico extrabíblico (no aparece directamente en el texto bíblico)</div>` : "";
+    ? `<div class="ficha-fuente">Fuente: registro histórico extrabíblico; no aparece directamente en el texto bíblico.</div>` : "";
   modalBody.innerHTML = `
-    <div class="ficha-eyebrow">${EPOCAS_BY_ID[p.epoca]?.n || ""}</div>
-    <div class="ficha-title">${p.n}</div>
-    ${rolHtml}
-    ${periodoHtml}
-    <div class="ficha-bio">${p.bio}</div>
-    <div class="ficha-versiculos"><b>Referencias:</b> ${p.v.join(" · ")}</div>
-    <div class="ficha-libros"><b>Libro(s):</b> ${p.libros.join(", ")}</div>
+    <div class="ficha-meta">${EPOCAS_BY_ID[p.epoca]?.n || ""}</div>
+    <h2 class="ficha-h">${p.n}</h2>
+    ${metaFila}
+    <div class="ficha-texto">${p.bio}</div>
+    <div class="ficha-refs"><b>Referencias</b> ${p.v.join(", ")}<br><b>Libro(s)</b> ${p.libros.join(", ")}</div>
     ${fuenteNote}
   `;
   modal.classList.add("open");
@@ -476,7 +475,10 @@ const eraNav = document.getElementById("era-nav");
 let currentBands = [];
 
 function actualizarEraNav(bandsInfo) {
-  currentBands = bandsInfo;
+  // Una sola entrada por época (la primera aparición), aunque sus franjas se repitan
+  const vistas = new Set();
+  currentBands = bandsInfo.filter(b => !vistas.has(b.epoca) && vistas.add(b.epoca));
+  bandsInfo = currentBands;
   eraNav.innerHTML = "";
   bandsInfo.forEach(b => {
     const meta = EPOCAS_BY_ID[b.epoca];
