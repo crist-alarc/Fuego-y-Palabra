@@ -188,10 +188,11 @@ function openKingModal(k, yearsTxt){
   const evLabel = k.ev==="bueno" ? "✓ Bueno" : k.ev==="malo" ? "✕ Malo" : "≈ Mixto";
   const evColor = k.ev==="bueno" ? "var(--good)" : k.ev==="malo" ? "var(--bad)" : "var(--mixed)";
   modalContent.innerHTML =
-    '<h2>' + k.name + '</h2>' +
-    '<div class="modal-sub">' + kindLabel + ' · ' + yearsTxt + ' · <span style="background:' + evColor + ';color:#fff;padding:1px 7px;border-radius:9px;font-size:11px;">' + evLabel + '</span></div>' +
-    '<div class="modal-refs">' + k.ref + '</div>' +
-    '<p>' + k.note + '</p>';
+    '<div class="ficha-meta">' + kindLabel + ', ' + yearsTxt + '</div>' +
+    '<h2 class="ficha-h">' + k.name + '</h2>' +
+    '<span class="tag filled" style="background:' + evColor + '">' + evLabel + '</span>' +
+    '<p class="ficha-texto">' + k.note + '</p>' +
+    '<div class="ficha-refs"><b>Referencia</b> ' + k.ref + '</div>';
   overlay.classList.add("open");
 }
 
@@ -199,18 +200,18 @@ function openJpModal(c){
   const yearTxt = (c.start===c.end) ? (c.start+" a.C.") : (c.start+"–"+c.end+" a.C.");
   const tipoLabel = c.tipo === "juez" ? "Juez" : "Profeta";
   modalContent.innerHTML =
-    '<h2>' + iconMap[c.tipo] + ' ' + c.name + '</h2>' +
-    '<div class="modal-sub">' + tipoLabel + ' · ' + yearTxt + '</div>' +
-    '<div class="modal-refs">' + c.ref + '</div>' +
-    '<p>' + c.note + '</p>';
+    '<div class="ficha-meta">' + tipoLabel + ', ' + yearTxt + '</div>' +
+    '<h2 class="ficha-h">' + c.name + '</h2>' +
+    '<p class="ficha-texto">' + c.note + '</p>' +
+    '<div class="ficha-refs"><b>Referencia</b> ' + c.ref + '</div>';
   overlay.classList.add("open");
 }
 
 function openCtxModal(c){
   modalContent.innerHTML =
-    '<h2>' + iconMap[c.tipo] + ' ' + c.label + '</h2>' +
-    '<div class="modal-sub">' + c.year + ' a.C. · ' + c.tipo.charAt(0).toUpperCase()+c.tipo.slice(1) + '</div>' +
-    '<p>' + c.note + '</p>';
+    '<div class="ficha-meta">' + c.tipo.charAt(0).toUpperCase()+c.tipo.slice(1) + ', ' + c.year + ' a.C.</div>' +
+    '<h2 class="ficha-h">' + c.label + '</h2>' +
+    '<p class="ficha-texto">' + c.note + '</p>';
   overlay.classList.add("open");
 }
 
